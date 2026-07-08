@@ -26,5 +26,10 @@ struct NightguardActivityAttributes: ActivityAttributes {
     }
 
     // Fixed non-changing properties about your activity go here!
+    var startedAt: Date
+
+    init(startedAt: Date = Date()) {
+        self.startedAt = startedAt
+    }
 }
 #endif

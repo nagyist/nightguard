@@ -109,9 +109,9 @@ final class BackgroundUpdateCoordinator {
 
                     Task {
                         if #available(iOS 16.1, *) {
-                            let updateResult = await LiveActivityManager.shared.updateExistingActivities(with: nightscoutData)
-                            let logMessage = "\(trigger.rawValue) Live Activity update result: activities=\(updateResult.activityCount), updated=\(updateResult.updatedActivityCount), message=\(updateResult.message)"
-                            if updateResult.didUpdateAnyActivity {
+                            let updateResult = await LiveActivityManager.shared.refreshActivitiesForBackgroundUpdate(with: nightscoutData)
+                            let logMessage = "\(trigger.rawValue) Live Activity refresh result: activities=\(updateResult.activityCount), endedExpired=\(updateResult.endedExpiredActivityCount), updated=\(updateResult.updatedActivityCount), started=\(updateResult.startedActivityCount), message=\(updateResult.message)"
+                            if updateResult.didChangeAnyActivity {
                                 AppLogger.singleton.info(logMessage, category: .backgroundUpdates)
                             } else {
                                 AppLogger.singleton.warning(logMessage, category: .backgroundUpdates)
