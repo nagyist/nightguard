@@ -50,6 +50,16 @@ class AlarmSound {
     fileprivate static let audioPlayerDelegate = AudioPlayerDelegate()
     
     fileprivate static var muted = false
+
+    #if MAIN_APP
+    static var applicationStateProvider: () -> UIApplication.State = {
+        UIApplication.shared.applicationState
+    }
+
+    static func shouldAllowPlayback(applicationState: UIApplication.State) -> Bool {
+        applicationState == .active
+    }
+    #endif
     
     /*
      * Sets the audio volume to 0.
@@ -80,9 +90,16 @@ class AlarmSound {
         self.audioPlayer = nil
         
         self.restoreSystemOutputVolume()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
     
     static func play() {
+        #if MAIN_APP
+        guard self.shouldAllowPlayback(applicationState: self.applicationStateProvider()) else {
+            self.stop()
+            return
+        }
+        #endif
         
         guard !self.isPlaying else {
             return

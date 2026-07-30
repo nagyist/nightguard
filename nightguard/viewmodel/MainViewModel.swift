@@ -95,7 +95,7 @@ class MainViewModel: ObservableObject, Identifiable {
     // Cancellables
     private var cancellables = Set<AnyCancellable>()
     private var observationTokens = [ObservationToken]()
-    private var shouldSuppressMissedReadingsAlarmUntilRefreshCompletes = false
+    private var shouldSuppressLocalAlarmUntilRefreshCompletes = false
     private var hasEnteredBackground = false
     private var dismissedErrorToastToken: String?
     #endif
@@ -159,6 +159,37 @@ class MainViewModel: ObservableObject, Identifiable {
         observationTokens.append(UserDefaultsRepository.lowerBound.observeChanges { [weak self] _ in
             self?.repaintChartWithCurrentData()
         })
+
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+
+                self.hasEnteredBackground = true
+                self.shouldSuppressLocalAlarmUntilRefreshCompletes = true
+                self.stopTimer()
+                AlarmSound.stop()
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+
+                if self.hasEnteredBackground {
+                    self.hasEnteredBackground = false
+                    self.shouldSuppressLocalAlarmUntilRefreshCompletes = true
+
+                    if self.isVisible {
+                        self.startTimer(forceRepaint: true, forceDataRefresh: true)
+                    }
+                } else {
+                    // Resume an alarm stopped by a temporary inactive state.
+                    self.evaluateAlarmActivationState()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     private func loadiOSInitialData() {
@@ -170,11 +201,13 @@ class MainViewModel: ObservableObject, Identifiable {
     }
 
     // MARK: - iOS Timer Management
-    func startTimer(forceRepaint: Bool = false) {
-        doPeriodicUpdate(forceRepaint: forceRepaint)
+    func startTimer(forceRepaint: Bool = false, forceDataRefresh: Bool = false) {
+        timer?.invalidate()
+
+        doPeriodicUpdate(forceRepaint: forceRepaint, forceDataRefresh: forceDataRefresh)
 
         timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { [weak self] _ in
-            self?.doPeriodicUpdate(forceRepaint: false)
+            self?.doPeriodicUpdate(forceRepaint: false, forceDataRefresh: false)
         }
     }
 
@@ -183,9 +216,9 @@ class MainViewModel: ObservableObject, Identifiable {
         timer = nil
     }
 
-    func doPeriodicUpdate(forceRepaint: Bool) {
+    func doPeriodicUpdate(forceRepaint: Bool, forceDataRefresh: Bool = false) {
         paintCurrentTime()
-        refreshData(forceRefresh: false, moveToLatestValue: forceRepaint)
+        refreshData(forceRefresh: forceDataRefresh, moveToLatestValue: forceRepaint)
         AppleHealthService.singleton.sync()
         updateSnoozeButtonText()
     }
@@ -195,7 +228,10 @@ class MainViewModel: ObservableObject, Identifiable {
         self.isVisible = isVisible
 
         if isVisible && wasInvisible {
-            startTimer(forceRepaint: true)
+            startTimer(
+                forceRepaint: true,
+                forceDataRefresh: shouldSuppressLocalAlarmUntilRefreshCompletes
+            )
         } else if !isVisible {
             stopTimer()
         }
@@ -250,7 +286,14 @@ class MainViewModel: ObservableObject, Identifiable {
     }
 
     func evaluateAlarmActivationState() {
-        if AlarmRule.isAlarmActivated() {
+        let hasActiveAlarm = AlarmRule.isAlarmActivated()
+        let applicationState = AlarmSound.applicationStateProvider()
+
+        if Self.shouldPlayLocalAlarm(
+            hasActiveAlarm: hasActiveAlarm,
+            isAwaitingForegroundRefresh: shouldSuppressLocalAlarmUntilRefreshCompletes,
+            applicationState: applicationState
+        ) {
             AlarmSound.play()
         } else {
             if !AlarmSound.isTesting {
@@ -258,6 +301,25 @@ class MainViewModel: ObservableObject, Identifiable {
             }
         }
         updateSnoozeButtonText()
+    }
+
+    static func shouldPlayLocalAlarm(
+        hasActiveAlarm: Bool,
+        isAwaitingForegroundRefresh: Bool,
+        applicationState: UIApplication.State
+    ) -> Bool {
+        hasActiveAlarm
+            && !isAwaitingForegroundRefresh
+            && AlarmSound.shouldAllowPlayback(applicationState: applicationState)
+    }
+
+    private func completeForegroundRefreshCycleIfNeeded() {
+        guard shouldSuppressLocalAlarmUntilRefreshCompletes else {
+            return
+        }
+
+        shouldSuppressLocalAlarmUntilRefreshCompletes = false
+        AlarmRule.disableTransientLocalAudioSuppression()
     }
     #endif
 
@@ -364,6 +426,13 @@ class MainViewModel: ObservableObject, Identifiable {
             return
         }
 
+        #if os(iOS)
+        // Only a request started after the foreground-refresh barrier was raised
+        // may release it. This prevents a delayed pre-background callback from
+        // enabling playback with stale data.
+        let completesPendingForegroundRefresh = shouldSuppressLocalAlarmUntilRefreshCompletes
+        #endif
+
         self.nightscoutData = NightscoutCacheService.singleton.loadCurrentNightscoutData(forceRefresh: forceRefresh) { [unowned self] result in
 
             guard let result = result else { return }
@@ -397,6 +466,9 @@ class MainViewModel: ObservableObject, Identifiable {
                     
                     // As soon as we have new data, we can disable the transient local audio suppression
                     // and evaluate the alarm state
+                    if completesPendingForegroundRefresh {
+                        completeForegroundRefreshCycleIfNeeded()
+                    }
                     AlarmRule.disableTransientLocalAudioSuppression()
                     evaluateAlarmActivationState()
                     #endif

@@ -75,6 +75,42 @@ class AlarmRuleTest: XCTestCase {
         XCTAssertFalse(AlarmRule.isSnoozed(ignoreTransientLocalAudioSuppression: true))
     }
 
+    func testLocalAlarmSoundPlaybackRequiresActiveApplication() {
+        XCTAssertTrue(AlarmSound.shouldAllowPlayback(applicationState: .active))
+        XCTAssertFalse(AlarmSound.shouldAllowPlayback(applicationState: .inactive))
+        XCTAssertFalse(AlarmSound.shouldAllowPlayback(applicationState: .background))
+    }
+
+    func testMainViewModelSuppressesLocalAlarmUntilForegroundRefreshCompletes() {
+        XCTAssertFalse(
+            MainViewModel.shouldPlayLocalAlarm(
+                hasActiveAlarm: true,
+                isAwaitingForegroundRefresh: true,
+                applicationState: .active
+            )
+        )
+    }
+
+    func testMainViewModelAllowsConfirmedAlarmAfterForegroundRefresh() {
+        XCTAssertTrue(
+            MainViewModel.shouldPlayLocalAlarm(
+                hasActiveAlarm: true,
+                isAwaitingForegroundRefresh: false,
+                applicationState: .active
+            )
+        )
+    }
+
+    func testMainViewModelRejectsLocalAlarmOutsideForeground() {
+        XCTAssertFalse(
+            MainViewModel.shouldPlayLocalAlarm(
+                hasActiveAlarm: true,
+                isAwaitingForegroundRefresh: false,
+                applicationState: .background
+            )
+        )
+    }
+
     private func makeNightscoutData(minutesAgo: Int) -> NightscoutData {
         let data = NightscoutData()
         data.sgv = "120"
