@@ -34,22 +34,9 @@ class LiveActivityManager {
     
     private init() {}
     
-    func startOrUpdateActivity(sgv: String, delta: String, trendArrow: String, date: Date, bgDelta: Double, sgvColor: UIColor, iob: String, cob: String) {
+    @available(iOS 16.1, *)
+    private func startOrUpdateActivity(with contentState: NightguardActivityAttributes.ContentState) {
         #if canImport(ActivityKit)
-        // Live Activities are only available on iOS 16.1+
-        guard #available(iOS 16.1, *) else { return }
-        
-        let contentState = makeContentState(
-            sgv: sgv,
-            delta: delta,
-            trendArrow: trendArrow,
-            date: date,
-            bgDelta: bgDelta,
-            sgvColor: sgvColor,
-            iob: iob,
-            cob: cob
-        )
-
         Task {
             let result = await refreshActivities(with: contentState, allowStartingNewActivity: true)
             if !result.didChangeAnyActivity {
@@ -62,7 +49,15 @@ class LiveActivityManager {
     @available(iOS 16.1, *)
     func refreshActivitiesForBackgroundUpdate(with nightscoutData: NightscoutData) async -> UpdateResult {
         #if canImport(ActivityKit)
-        let contentState = makeContentState(from: NightguardDisplaySnapshot.make(from: nightscoutData))
+        let historyValues = NightscoutDataRepository.singleton.loadTodaysBgData()
+        let snapshot = NightguardDisplaySnapshot.make(from: nightscoutData, previousValues: historyValues)
+        let contentState = makeContentState(
+            from: snapshot,
+            historyValues: NightguardDisplaySnapshot.makeLiveActivityHistory(
+                from: historyValues,
+                including: nightscoutData
+            )
+        )
         return await refreshActivities(with: contentState, allowStartingNewActivity: true)
         #else
         return UpdateResult(
@@ -109,7 +104,15 @@ class LiveActivityManager {
             )
         }
 
-        let contentState = makeContentState(from: NightguardDisplaySnapshot.make(from: nightscoutData))
+        let historyValues = NightscoutDataRepository.singleton.loadTodaysBgData()
+        let snapshot = NightguardDisplaySnapshot.make(from: nightscoutData, previousValues: historyValues)
+        let contentState = makeContentState(
+            from: snapshot,
+            historyValues: NightguardDisplaySnapshot.makeLiveActivityHistory(
+                from: historyValues,
+                including: nightscoutData
+            )
+        )
         var updatedActivityCount = 0
         for activity in activities {
             if #available(iOS 16.2, *) {
@@ -141,19 +144,21 @@ class LiveActivityManager {
 
     func update(with nightscoutData: NightscoutData) {
         #if os(iOS)
-        NightscoutDataRepository.singleton.storeLatestDisplaySnapshot(from: nightscoutData)
-        let displayValues = makeDisplayValues(from: nightscoutData)
-
-        startOrUpdateActivity(
-            sgv: displayValues.sgv,
-            delta: displayValues.delta,
-            trendArrow: displayValues.trendArrow,
-            date: displayValues.date,
-            bgDelta: displayValues.bgDelta,
-            sgvColor: displayValues.sgvColor,
-            iob: displayValues.iob,
-            cob: displayValues.cob
+        let historyValues = NightscoutDataRepository.singleton.loadTodaysBgData()
+        let snapshot = NightscoutDataRepository.singleton.storeLatestDisplaySnapshot(
+            from: nightscoutData,
+            previousValues: historyValues
         )
+
+        guard #available(iOS 16.1, *) else { return }
+        let contentState = makeContentState(
+            from: snapshot,
+            historyValues: NightguardDisplaySnapshot.makeLiveActivityHistory(
+                from: historyValues,
+                including: nightscoutData
+            )
+        )
+        startOrUpdateActivity(with: contentState)
         #endif
     }
     
@@ -282,12 +287,10 @@ class LiveActivityManager {
     }
 
     @available(iOS 16.1, *)
-    private func makeContentState(from nightscoutData: NightscoutData) -> NightguardActivityAttributes.ContentState {
-        makeContentState(from: NightguardDisplaySnapshot.make(from: nightscoutData))
-    }
-
-    @available(iOS 16.1, *)
-    private func makeContentState(from snapshot: NightguardDisplaySnapshot) -> NightguardActivityAttributes.ContentState {
+    private func makeContentState(
+        from snapshot: NightguardDisplaySnapshot,
+        historyValues: [BloodSugar]
+    ) -> NightguardActivityAttributes.ContentState {
         NightguardActivityAttributes.ContentState(
             sgv: snapshot.sgv,
             delta: snapshot.bgdeltaString,
@@ -298,62 +301,16 @@ class LiveActivityManager {
             sgvColorGreen: snapshot.sgvColorGreen,
             sgvColorBlue: snapshot.sgvColorBlue,
             iob: snapshot.iob,
-            cob: snapshot.cob
-        )
-    }
-
-    @available(iOS 16.1, *)
-    private func makeContentState(
-        sgv: String,
-        delta: String,
-        trendArrow: String,
-        date: Date,
-        bgDelta: Double,
-        sgvColor: UIColor,
-        iob: String,
-        cob: String
-    ) -> NightguardActivityAttributes.ContentState {
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        var alpha: CGFloat = 0
-        sgvColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-
-        return NightguardActivityAttributes.ContentState(
-            sgv: sgv,
-            delta: delta,
-            trendArrow: trendArrow,
-            date: date,
-            bgDelta: bgDelta,
-            sgvColorRed: Double(red),
-            sgvColorGreen: Double(green),
-            sgvColorBlue: Double(blue),
-            iob: iob,
-            cob: cob
+            cob: snapshot.cob,
+            glucoseSamples: historyValues.map {
+                NightguardActivityAttributes.GlucoseSample(
+                    value: Double($0.value),
+                    timestamp: $0.timestamp
+                )
+            },
+            lowerTarget: Double(UserDefaultsRepository.lowerBound.value),
+            upperTarget: Double(UserDefaultsRepository.upperBound.value)
         )
     }
     #endif
-
-    private func makeDisplayValues(from nightscoutData: NightscoutData) -> (
-        sgv: String,
-        delta: String,
-        trendArrow: String,
-        date: Date,
-        bgDelta: Double,
-        sgvColor: UIColor,
-        iob: String,
-        cob: String
-    ) {
-        let sgv = UnitsConverter.mgdlToDisplayUnits(nightscoutData.sgv)
-        return (
-            sgv: sgv,
-            delta: UnitsConverter.mgdlToDisplayUnitsWithSign("\(nightscoutData.bgdelta)"),
-            trendArrow: nightscoutData.bgdeltaArrow,
-            date: Date(timeIntervalSince1970: Double(nightscoutData.time.int64Value / 1000)),
-            bgDelta: Double(nightscoutData.bgdelta),
-            sgvColor: UIColorChanger.getBgColor(sgv),
-            iob: nightscoutData.iob,
-            cob: nightscoutData.cob
-        )
-    }
 }

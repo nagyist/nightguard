@@ -14,6 +14,8 @@ import WidgetKit
 
 struct NightguardDisplaySnapshot: Codable, Hashable {
     static let maxFreshAge: TimeInterval = 15 * 60
+    static let liveActivityHistoryDuration: TimeInterval = 60 * 60
+    static let liveActivityMaximumSampleCount = 13
 
     struct BgValue: Codable, Hashable {
         let value: String
@@ -171,6 +173,32 @@ struct NightguardDisplaySnapshot: Codable, Hashable {
         return bloodSugarValues
             .filter { abs($0.timestamp - currentTimestamp) > 0.5 }
             + [currentBloodSugar]
+    }
+
+    static func makeLiveActivityHistory(
+        from bloodSugarValues: [BloodSugar],
+        including data: NightscoutData,
+        duration: TimeInterval = liveActivityHistoryDuration,
+        maximumSampleCount: Int = liveActivityMaximumSampleCount
+    ) -> [BloodSugar] {
+        guard maximumSampleCount > 0 else {
+            return []
+        }
+
+        let sortedValues = historyValues(bloodSugarValues, including: data)
+            .filter { $0.isValid && $0.timestamp > 0 }
+            .sorted { $0.timestamp < $1.timestamp }
+
+        guard let latestTimestamp = sortedValues.last?.timestamp else {
+            return []
+        }
+
+        let earliestTimestamp = latestTimestamp - duration * 1000
+        let valuesWithinDuration = sortedValues.filter {
+            $0.timestamp >= earliestTimestamp && $0.timestamp <= latestTimestamp
+        }
+
+        return Array(valuesWithinDuration.suffix(maximumSampleCount))
     }
 
     private struct SnapshotBgEntry {

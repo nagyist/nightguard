@@ -209,6 +209,108 @@ class DataRepositoryTest: XCTestCase {
         XCTAssertEqual(snapshot.lastBGValues.map(\.timestamp), [300_000, 200_000])
     }
 
+    func testLiveActivityHistoryUsesLatestHourAndMaximumThirteenValues() {
+        // Given
+        let latestTimestamp = 10_000_000.0
+        let fiveMinutesInMilliseconds = 5.0 * 60.0 * 1000.0
+        let previousValues = (0..<15).map { index in
+            BloodSugar(
+                value: Float(100 + index),
+                timestamp: latestTimestamp - Double(14 - index) * fiveMinutesInMilliseconds,
+                isMeteredBloodGlucoseValue: false,
+                arrow: "->"
+            )
+        } + [
+            BloodSugar(
+                value: 5,
+                timestamp: latestTimestamp - fiveMinutesInMilliseconds,
+                isMeteredBloodGlucoseValue: false,
+                arrow: "->"
+            )
+        ]
+        let nightscoutData = NightscoutData()
+        nightscoutData.sgv = "140"
+        nightscoutData.time = NSNumber(value: latestTimestamp)
+        nightscoutData.bgdeltaArrow = "->"
+
+        // When
+        let history = NightguardDisplaySnapshot.makeLiveActivityHistory(
+            from: previousValues,
+            including: nightscoutData
+        )
+
+        // Then
+        XCTAssertEqual(history.count, 13)
+        XCTAssertEqual(history.first?.timestamp, latestTimestamp - 60 * 60 * 1000)
+        XCTAssertEqual(history.last?.timestamp, latestTimestamp)
+        XCTAssertEqual(history.last?.value, 140)
+        XCTAssertEqual(history.filter { $0.timestamp == latestTimestamp }.count, 1)
+        XCTAssertTrue(zip(history, history.dropFirst()).allSatisfy { $0.timestamp < $1.timestamp })
+    }
+
+    func testLiveActivityHistoryCanBeLimitedAndExcludesInvalidValues() {
+        // Given
+        let nightscoutData = NightscoutData()
+        nightscoutData.sgv = "130"
+        nightscoutData.time = NSNumber(value: 1_000_000)
+        let previousValues = [
+            BloodSugar(value: 100, timestamp: 700_000, isMeteredBloodGlucoseValue: false, arrow: "->"),
+            BloodSugar(value: 5, timestamp: 800_000, isMeteredBloodGlucoseValue: false, arrow: "->"),
+            BloodSugar(value: 120, timestamp: 900_000, isMeteredBloodGlucoseValue: false, arrow: "->")
+        ]
+
+        // When
+        let history = NightguardDisplaySnapshot.makeLiveActivityHistory(
+            from: previousValues,
+            including: nightscoutData,
+            maximumSampleCount: 2
+        )
+
+        // Then
+        XCTAssertEqual(history.map(\.value), [120, 130])
+    }
+
+    #if canImport(ActivityKit)
+    @available(iOS 16.1, *)
+    func testLiveActivityContentStateDecodesPayloadWithoutChartFields() throws {
+        // Given
+        let state = NightguardActivityAttributes.ContentState(
+            sgv: "120",
+            delta: "+5",
+            trendArrow: "->",
+            date: Date(timeIntervalSince1970: 1_000),
+            bgDelta: 5,
+            sgvColorRed: 0,
+            sgvColorGreen: 1,
+            sgvColorBlue: 0,
+            iob: "1.0U",
+            cob: "10g",
+            glucoseSamples: [
+                NightguardActivityAttributes.GlucoseSample(value: 120, timestamp: 1_000_000)
+            ],
+            lowerTarget: 70,
+            upperTarget: 190
+        )
+        let encodedState = try JSONEncoder().encode(state)
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: encodedState) as? [String: Any])
+        json.removeValue(forKey: "glucoseSamples")
+        json.removeValue(forKey: "lowerTarget")
+        json.removeValue(forKey: "upperTarget")
+        let oldStateData = try JSONSerialization.data(withJSONObject: json)
+
+        // When
+        let decodedState = try JSONDecoder().decode(
+            NightguardActivityAttributes.ContentState.self,
+            from: oldStateData
+        )
+
+        // Then
+        XCTAssertTrue(decodedState.glucoseSamples.isEmpty)
+        XCTAssertEqual(decodedState.lowerTarget, 80)
+        XCTAssertEqual(decodedState.upperTarget, 180)
+    }
+    #endif
+
     func testDisplaySnapshotDecodesOldSnapshotWithoutHistory() throws {
         // Given
         let snapshot = NightguardDisplaySnapshot(

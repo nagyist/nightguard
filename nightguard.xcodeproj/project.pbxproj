@@ -382,6 +382,8 @@
 		A1B2C3D01E5F6A7B8C9D0E3 /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E5F6A7B8C9D0E1 /* LogsView.swift */; };
 		A1B2C3D01E5F6A7B8C9D0E4 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D01E5F6A7B8C9D0E2 /* AppLogger.swift */; };
 		A6D112AB02A31088FCA84B99 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEFE0D2349E86D60E1E59494 /* LiveActivityAttributes.swift */; };
+		A6D112AC02A31088FCA84B99 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEFE0D2349E86D60E1E59494 /* LiveActivityAttributes.swift */; };
+		A6D112AD02A31088FCA84B99 /* UIColorChanger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43119B861C383CF500DD6D35 /* UIColorChanger.swift */; };
 		B6D90230DCDA3649074F6A5C /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B429E994A0A3E27C5DBF08EB /* LiveActivityManager.swift */; };
 		BDE83C1A40D5ED56B77C7800 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A89FEED7C7CD16357E39AC06 /* FirebaseCore */; };
 		D112DD3421E9E2E000ECFB5E /* TimerExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = D112DD3321E9E2DF00ECFB5E /* TimerExtension.swift */; };
@@ -1685,6 +1687,8 @@
 				432E62E71D11F61500DD7978 /* UserDefaultsRepositoryTest.swift in Sources */,
 				4302C6A625DC66A80052777F /* BolusWizardTreatment.swift in Sources */,
 				43794F491C30489C00DB8B58 /* NightscoutDataRepository.swift in Sources */,
+				A6D112AC02A31088FCA84B99 /* LiveActivityAttributes.swift in Sources */,
+				A6D112AD02A31088FCA84B99 /* UIColorChanger.swift in Sources */,
 				D1B777E72244C43D003FEDF0 /* Comparable+Extensions.swift in Sources */,
 				432E62E01D10AF3800DD7978 /* Units.swift in Sources */,
 				4389A51A2602A3F6001F10AD /* TemporaryTarget.swift in Sources */,
