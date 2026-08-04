@@ -39,7 +39,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
-        // Called when the scene has moved from an inactive state to an active state.
+        // Scene-based apps do not reliably forward every activation through the
+        // UIApplicationDelegate lifecycle, so install the grace period here too.
+        (UIApplication.shared.delegate as? AppDelegate)?.applyTransientLocalAudioSuppression()
     }
 
     func sceneWillResignActive(_ scene: UIScene) {

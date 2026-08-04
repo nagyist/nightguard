@@ -97,6 +97,7 @@ class MainViewModel: ObservableObject, Identifiable {
     private var observationTokens = [ObservationToken]()
     private var shouldSuppressLocalAlarmUntilRefreshCompletes = false
     private var hasEnteredBackground = false
+    private var activationSnoozeEvaluationWorkItem: DispatchWorkItem?
     private var dismissedErrorToastToken: String?
     #endif
 
@@ -177,6 +178,8 @@ class MainViewModel: ObservableObject, Identifiable {
             .sink { [weak self] _ in
                 guard let self else { return }
 
+                self.scheduleEvaluationAfterActivationSnooze()
+
                 if self.hasEnteredBackground {
                     self.hasEnteredBackground = false
                     self.shouldSuppressLocalAlarmUntilRefreshCompletes = true
@@ -185,7 +188,8 @@ class MainViewModel: ObservableObject, Identifiable {
                         self.startTimer(forceRepaint: true, forceDataRefresh: true)
                     }
                 } else {
-                    // Resume an alarm stopped by a temporary inactive state.
+                    // AppDelegate installs a fresh 10-second local snooze for
+                    // every activation, including temporary inactive states.
                     self.evaluateAlarmActivationState()
                 }
             }
@@ -274,7 +278,13 @@ class MainViewModel: ObservableObject, Identifiable {
     }
 
     func updateSnoozeButtonText() {
-        if AlarmRule.isSnoozed() {
+        let transientSeconds = AlarmRule.getRemainingTransientLocalAudioSnoozeSeconds()
+        if transientSeconds > 0 {
+            snoozeButtonText = String(
+                format: NSLocalizedString("Snoozed for %ds", comment: "Short automatic snooze in seconds"),
+                transientSeconds
+            )
+        } else if AlarmRule.isSnoozed() {
             let remainingMinutes = AlarmRule.getRemainingSnoozeMinutes()
             snoozeButtonText = String(format: NSLocalizedString("Snoozed for %dmin", comment: ""), remainingMinutes)
         } else {
@@ -283,6 +293,16 @@ class MainViewModel: ObservableObject, Identifiable {
         
         // Use AlarmRule.getAlarmActivationReason to get the text to show on the snooze button
         lowPredictionText = AlarmRule.getAlarmActivationReason(ignoreSnooze: true) ?? ""
+    }
+
+    private func scheduleEvaluationAfterActivationSnooze() {
+        activationSnoozeEvaluationWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.evaluateAlarmActivationState()
+        }
+        activationSnoozeEvaluationWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.1, execute: workItem)
     }
 
     func evaluateAlarmActivationState() {
@@ -319,7 +339,6 @@ class MainViewModel: ObservableObject, Identifiable {
         }
 
         shouldSuppressLocalAlarmUntilRefreshCompletes = false
-        AlarmRule.disableTransientLocalAudioSuppression()
     }
     #endif
 
@@ -464,12 +483,11 @@ class MainViewModel: ObservableObject, Identifiable {
                     }
                     WatchService.singleton.sendToWatchCurrentNightwatchData()
                     
-                    // As soon as we have new data, we can disable the transient local audio suppression
-                    // and evaluate the alarm state
+                    // Fresh data may release the refresh barrier, but the
+                    // activation snooze must still run for its full 10 seconds.
                     if completesPendingForegroundRefresh {
                         completeForegroundRefreshCycleIfNeeded()
                     }
-                    AlarmRule.disableTransientLocalAudioSuppression()
                     evaluateAlarmActivationState()
                     #endif
 

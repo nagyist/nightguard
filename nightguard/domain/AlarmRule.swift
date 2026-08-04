@@ -401,6 +401,11 @@ class AlarmRule {
         
         return Int(ceil((snoozedUntilTimestamp.value - currentTimestamp) / 60.0))
     }
+
+    static func getRemainingTransientLocalAudioSnoozeSeconds() -> Int {
+        let remainingSeconds = transientLocalAudioSuppressedUntil - Date().timeIntervalSince1970
+        return max(0, Int(ceil(remainingSeconds)))
+    }
     
     static func getSnoozedUntilTimestamp() -> TimeInterval {
         return snoozedUntilTimestamp.value

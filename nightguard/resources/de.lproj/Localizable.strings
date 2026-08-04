@@ -218,6 +218,7 @@
 
 /* Text of snooze button */
 "snooze" = "schlummern";
+"Snoozed for %ds" = "Schlummern: %d Sek.";
 
 /* Footer for smart snooze switch */
 "Snooze (do not alert) when values are high or low but the trend is going in the right direction." = "Schlummere (KEIN Alarm) bei hohen oder niedrigen Werten aber Trend in die richtige Richtung.";

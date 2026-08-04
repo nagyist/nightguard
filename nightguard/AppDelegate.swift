@@ -372,11 +372,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         hasEnteredBackground = false
-        applyTransientLocalAudioSuppressionIfNeeded()
+        applyTransientLocalAudioSuppression()
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive.
+        // Every activation gets a fresh grace period. This also covers temporary
+        // inactive states and scene transitions which do not enter background.
+        applyTransientLocalAudioSuppression()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -393,14 +395,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             return
         }
 
-        applyTransientLocalAudioSuppressionIfNeeded()
+        applyTransientLocalAudioSuppression()
     }
 
-    private func applyTransientLocalAudioSuppressionIfNeeded() {
-        guard !AlarmRule.isSnoozed(ignoreTransientLocalAudioSuppression: true) else {
-            return
-        }
-
+    func applyTransientLocalAudioSuppression() {
         AlarmRule.suppressTransientLocalAudio(seconds: 10)
         AlarmSound.stop()
     }

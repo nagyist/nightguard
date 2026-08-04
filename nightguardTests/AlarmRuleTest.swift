@@ -73,6 +73,8 @@ class AlarmRuleTest: XCTestCase {
 
         XCTAssertTrue(AlarmRule.isSnoozed())
         XCTAssertFalse(AlarmRule.isSnoozed(ignoreTransientLocalAudioSuppression: true))
+        XCTAssertGreaterThan(AlarmRule.getRemainingTransientLocalAudioSnoozeSeconds(), 0)
+        XCTAssertLessThanOrEqual(AlarmRule.getRemainingTransientLocalAudioSnoozeSeconds(), 10)
     }
 
     func testLocalAlarmSoundPlaybackRequiresActiveApplication() {

@@ -407,6 +407,7 @@
 
 /* Text of snooze button */
 "snooze" = "snooze";
+"Snoozed for %ds" = "Snoozed for %ds";
 
 /* Footer for smart snooze switch */
 "Snooze (do not alert) when values are high or low but the trend is going in the right direction." = "Snooze (do not alert) when values are high or low but the trend is going in the right direction.";
