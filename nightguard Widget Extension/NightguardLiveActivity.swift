@@ -51,24 +51,34 @@ struct NightguardLiveActivity: Widget {
 
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded UI
+                // Keep the value and trend together so the chart can sit clearly
+                // to their right as a separate visual block.
                 DynamicIslandExpandedRegion(.leading) {
-                    VStack(alignment: .center) {
+                    HStack(alignment: .firstTextBaseline, spacing: 9) {
                         Text(context.state.sgv)
-                            .font(.system(size: 44, weight: .bold))
-                            .foregroundColor(Color(red: context.state.sgvColorRed, green: context.state.sgvColorGreen, blue: context.state.sgvColorBlue))
+                            .font(.system(size: 52, weight: .bold, design: .rounded))
+                            .fixedSize(horizontal: true, vertical: false)
+                            .layoutPriority(1)
+                            .foregroundColor(glucoseColor(for: context.state))
+
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text(context.state.delta)
+                                .font(.system(size: 25, weight: .semibold, design: .rounded))
+                                .fixedSize(horizontal: true, vertical: false)
+                                .layoutPriority(1)
+                                .foregroundColor(glucoseColor(for: context.state))
+
+                            Text(context.state.trendArrow)
+                                .font(.system(size: 30, weight: .medium))
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .fixedSize(horizontal: true, vertical: false)
                     }
-                    .padding(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 8)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        HStack(spacing: 2) {
-                            Text(context.state.delta)
-                                .font(.headline)
-                                .foregroundColor(Color(red: context.state.sgvColorRed, green: context.state.sgvColorGreen, blue: context.state.sgvColorBlue))
-                            Text(context.state.trendArrow)
-                                .font(.title2)
-                        }
+                    VStack(spacing: 0) {
                         if !context.state.glucoseSamples.isEmpty {
                             GlucoseSparkline(
                                 samples: context.state.glucoseSamples,
@@ -76,41 +86,46 @@ struct NightguardLiveActivity: Widget {
                                 upperTarget: context.state.upperTarget,
                                 lineColor: glucoseColor(for: context.state)
                             )
-                            .frame(width: 110, height: 40)
+                            .frame(
+                                minWidth: 120,
+                                idealWidth: 190,
+                                maxWidth: .infinity,
+                                minHeight: 54,
+                                maxHeight: 54
+                            )
                         }
                     }
-                    .padding(.trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, 8)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 0) {
-                        HStack {
-                            if !context.state.iob.isEmpty {
-                                Text("IOB: \(context.state.iob)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            if !context.state.cob.isEmpty {
-                                if !context.state.iob.isEmpty {
-                                    Text("•")
-                                        .foregroundColor(.secondary)
-                                }
-                                Text("COB: \(context.state.cob)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                    HStack(spacing: 8) {
+                        if !context.state.iob.isEmpty {
+                            Text("IOB: \(context.state.iob)")
                         }
-                        HStack {
-                            Spacer()
+
+                        if !context.state.iob.isEmpty && !context.state.cob.isEmpty {
+                            Text("•")
+                                .foregroundColor(.secondary.opacity(0.65))
+                        }
+
+                        if !context.state.cob.isEmpty {
+                            Text("COB: \(context.state.cob)")
+                        }
+
+                        Spacer(minLength: 8)
+
+                        HStack(spacing: 3) {
                             Text(context.state.date, style: .relative)
-                                .font(.caption2)
-                                .monospacedDigit()
-                                .foregroundColor(.secondary)
-                            Text(" ago")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Spacer()
+                            Text("ago")
                         }
+                        .monospacedDigit()
                     }
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, 12)
                 }
             } compactLeading: {
                 Text(context.state.sgv)
