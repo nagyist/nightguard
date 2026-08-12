@@ -47,6 +47,18 @@ struct MainView: View {
         self.oldCrownValue = crownValue
         viewModel.skScene.scale(1 + CGFloat(-1 * rotationDelta / 500), keepScale: true)
     }
+
+    fileprivate func selectChart() {
+        let rotationDelta = oldCrownValue - crownValue
+        if abs(rotationDelta) > 1000 {
+            oldCrownValue = crownValue
+            return
+        }
+
+        oldCrownValue = crownValue
+        guard rotationDelta != 0 else { return }
+        viewModel.skScene.moveSelection(by: rotationDelta > 0 ? 1 : -1)
+    }
     
     var body: some View {
         
@@ -166,10 +178,13 @@ struct MainView: View {
                                 .focusable(true)
                                 .digitalCrownRotation($crownValue, from: 0, through: 10000, by: 15, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: true)
                                 .onReceive(Just(crownValue)) { output in
-                                    if viewModel.crownScrolls {
+                                    switch viewModel.crownMode {
+                                    case .scroll:
                                         scrollChart()
-                                    } else {
+                                    case .zoom:
                                         zoomChart()
+                                    case .select:
+                                        selectChart()
                                     }
                                 }
                         }
@@ -202,6 +217,9 @@ struct MainView: View {
             }
             .onReceive(refreshDataOnAppBecameActiveNotification) { _ in
                 viewModel.refreshData(forceRefresh: false, moveToLatestValue: false)
+            }
+            .onChange(of: viewModel.crownMode) { _ in
+                oldCrownValue = crownValue
             }
     }
 }

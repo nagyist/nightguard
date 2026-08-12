@@ -511,6 +511,9 @@
 
 /* Watch Action Button Menu */
 "Crown Zooms" = "Crown zoomaa";
+"Crown Selects" = "Crown valitsee";
+"Bolus %.1fU" = "Bolus %.1fU";
+"Carbs %dg" = "Hiilihydraatit %dg";
 
 /* Alarm settings title: Custom Alarm Sound */
 "Alarm Sound" = "Hälytysääni";
@@ -728,6 +731,8 @@
 "Support for the dynamic island and live activities to see your BG at a glance." = "Tuki Dynamic Islandille ja Live-aktiviteeteille, jotta näet glukoosiarvosi yhdellä silmäyksellä.";
 "Watch Statistics" = "Kellon tilastot";
 "See the four main glucose stats directly on your Apple Watch in a compact 2x2 view." = "Näe neljä tärkeintä glukoositilastoa suoraan Apple Watchissa kompaktissa 2x2-näkymässä.";
+"Interactive Chart Selection" = "Interaktiivinen kaavion valinta";
+"Touch the chart to inspect exact glucose values, timestamps, boluses and carbs on iPhone and Apple Watch." = "Napauta kaaviota nähdäksesi tarkat glukoosiarvot, ajat, bolukset ja hiilihydraatit iPhonella ja Apple Watchilla.";
 "Unlock Pro to see the four main stats on your Apple Watch." = "Avaa Pro nähdäksesi neljä tärkeintä tilastoa Apple Watchissasi.";
 "Subscribe on iPhone" = "Tilaa iPhonella";
 "Tap to change" = "Vaihda napauttamalla";

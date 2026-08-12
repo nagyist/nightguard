@@ -25,33 +25,17 @@ struct ActionButtonView: View {
     var body: some View {
         VStack(content: {
                 
-            if viewModel.crownScrolls {
-                Button(action: {
-                    WKInterfaceDevice.current().play(.success)
-                    viewModel.toggleCrownScrolls()
-                }) {
-                    VStack() {
-                        Image(systemName: "rectangle.portrait.arrowtriangle.2.outward")
-                            .resizable()
-                            .frame(width: getButtonSize(), height: getButtonSize())
-                        Text(NSLocalizedString("Crown Scrolls", comment: "Watch Action Button Menu"))
-                            .lineLimit(1)
-                            .font(.system(size: 11))
-                    }
-                }
-            } else {
-                Button(action: {
-                    WKInterfaceDevice.current().play(.success)
-                    viewModel.toggleCrownScrolls()
-                }) {
-                    VStack() {
-                        Image(systemName: "plus.magnifyingglass")
-                            .resizable()
-                            .frame(width: getButtonSize(), height: getButtonSize())
-                        Text(NSLocalizedString("Crown Zooms", comment: "Watch Action Button Menu"))
-                            .lineLimit(1)
-                            .font(.system(size: 11))
-                    }
+            Button(action: {
+                WKInterfaceDevice.current().play(.success)
+                viewModel.cycleCrownMode()
+            }) {
+                VStack() {
+                    Image(systemName: nextCrownModeIcon)
+                        .resizable()
+                        .frame(width: getButtonSize(), height: getButtonSize())
+                    Text(nextCrownModeTitle)
+                        .lineLimit(1)
+                        .font(.system(size: 11))
                 }
             }
             if #available(watchOSApplicationExtension 7.0, *) {
@@ -74,6 +58,32 @@ struct ActionButtonView: View {
             }
         })
         .focusable(false)
+    }
+
+    private var nextCrownModeTitle: String {
+        switch viewModel.crownMode {
+        case .scroll:
+            return NSLocalizedString("Crown Zooms", comment: "Watch Action Button Menu")
+        case .zoom:
+            return UserDefaultsRepository.watchProAccessAvailable.value
+                ? NSLocalizedString("Crown Selects", comment: "Watch Action Button Menu")
+                : NSLocalizedString("Crown Scrolls", comment: "Watch Action Button Menu")
+        case .select:
+            return NSLocalizedString("Crown Scrolls", comment: "Watch Action Button Menu")
+        }
+    }
+
+    private var nextCrownModeIcon: String {
+        switch viewModel.crownMode {
+        case .scroll:
+            return "plus.magnifyingglass"
+        case .zoom:
+            return UserDefaultsRepository.watchProAccessAvailable.value
+                ? "scope"
+                : "rectangle.portrait.arrowtriangle.2.outward"
+        case .select:
+            return "rectangle.portrait.arrowtriangle.2.outward"
+        }
     }
 }
     

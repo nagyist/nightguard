@@ -43,7 +43,7 @@ struct NightguardLiveActivity: Widget {
                         lineColor: glucoseColor(for: context.state)
                     )
                     .frame(minWidth: 100, maxWidth: .infinity)
-                    .frame(height: 48)
+                    .frame(height: 64)
                 }
             }
             .padding()
@@ -76,7 +76,7 @@ struct NightguardLiveActivity: Widget {
                                 upperTarget: context.state.upperTarget,
                                 lineColor: glucoseColor(for: context.state)
                             )
-                            .frame(width: 110, height: 28)
+                            .frame(width: 110, height: 40)
                         }
                     }
                     .padding(.trailing)
@@ -154,7 +154,13 @@ private struct GlucoseSparkline: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let plotRect = CGRect(origin: .zero, size: geometry.size).insetBy(dx: 3, dy: 3)
+            let yAxisWidth: CGFloat = 24
+            let plotRect = CGRect(
+                x: yAxisWidth + 4,
+                y: 3,
+                width: max(geometry.size.width - yAxisWidth - 4, 1),
+                height: max(geometry.size.height - 6, 1)
+            )
 
             ZStack {
                 targetBandPath(in: plotRect)
@@ -166,11 +172,30 @@ private struct GlucoseSparkline: View {
                         style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
                     )
 
-                if let latestSample = orderedSamples.last {
+                ForEach(orderedSamples.indices, id: \.self) { index in
+                    let sample = orderedSamples[index]
                     Circle()
                         .fill(lineColor)
                         .frame(width: 6, height: 6)
-                        .position(point(for: latestSample, in: plotRect))
+                        .position(point(for: sample, in: plotRect))
+                }
+
+                if let sampleValueBounds {
+                    Text(axisLabel(for: sampleValueBounds.upperBound))
+                        .font(.system(size: 8, weight: .medium, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .position(
+                            x: yAxisWidth / 2,
+                            y: yPosition(for: sampleValueBounds.upperBound, in: plotRect)
+                        )
+
+                    Text(axisLabel(for: sampleValueBounds.lowerBound))
+                        .font(.system(size: 8, weight: .medium, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .position(
+                            x: yAxisWidth / 2,
+                            y: yPosition(for: sampleValueBounds.lowerBound, in: plotRect)
+                        )
                 }
             }
         }
@@ -182,13 +207,22 @@ private struct GlucoseSparkline: View {
     }
 
     private var valueRange: ClosedRange<Double> {
-        let normalizedLowerTarget = min(lowerTarget, upperTarget)
-        let normalizedUpperTarget = max(lowerTarget, upperTarget)
-        let values = orderedSamples.map(\.value) + [normalizedLowerTarget, normalizedUpperTarget]
-        let minimum = values.min() ?? normalizedLowerTarget
-        let maximum = values.max() ?? normalizedUpperTarget
-        let padding = max((maximum - minimum) * 0.12, 10)
-        return (minimum - padding)...(maximum + padding)
+        guard let minimum = orderedSamples.map(\.value).min(),
+              let maximum = orderedSamples.map(\.value).max() else {
+            let normalizedLowerTarget = min(lowerTarget, upperTarget)
+            let normalizedUpperTarget = max(lowerTarget, upperTarget)
+            return normalizedLowerTarget...normalizedUpperTarget
+        }
+
+        return minimum...maximum
+    }
+
+    private var sampleValueBounds: ClosedRange<Double>? {
+        guard let minimum = orderedSamples.map(\.value).min(),
+              let maximum = orderedSamples.map(\.value).max() else {
+            return nil
+        }
+        return minimum...maximum
     }
 
     private var timeRange: ClosedRange<TimeInterval> {
@@ -209,6 +243,16 @@ private struct GlucoseSparkline: View {
             x: rect.minX + rect.width * relativeX,
             y: rect.maxY - rect.height * relativeY
         )
+    }
+
+    private func yPosition(for value: Double, in rect: CGRect) -> CGFloat {
+        let valueSpan = max(valueRange.upperBound - valueRange.lowerBound, 1)
+        let relativeY = ((value - valueRange.lowerBound) / valueSpan).clamped(to: 0...1)
+        return rect.maxY - rect.height * relativeY
+    }
+
+    private func axisLabel(for value: Double) -> String {
+        String(Int(value.rounded()))
     }
 
     private func glucosePath(in rect: CGRect) -> Path {

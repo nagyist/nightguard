@@ -79,4 +79,50 @@ class ChartPainterTest: XCTestCase {
         
         XCTAssertEqual(24, hours.count)
     }
+
+    func testChartSelectionChoosesNearestBloodSugar() {
+        let firstTimestamp = Date().addingTimeInterval(-600).timeIntervalSince1970 * 1000
+        let secondTimestamp = Date().addingTimeInterval(-300).timeIntervalSince1970 * 1000
+        let first = BloodSugar(value: 100, timestamp: firstTimestamp, isMeteredBloodGlucoseValue: false, arrow: "-")
+        let second = BloodSugar(value: 140, timestamp: secondTimestamp, isMeteredBloodGlucoseValue: false, arrow: "-")
+        let scene = ChartScene(size: CGSize(width: 300, height: 200), newCanvasWidth: 600, useContrastfulColors: false, showYesterdaysBgs: false)
+
+        scene.paintChart([[first, second], []], newCanvasWidth: 600, maxYDisplayValue: 350, moveToLatestValue: false, displayDaysLegend: false, useConstrastfulColors: false, showYesterdaysBgs: false)
+        scene.activateSelection(atSceneX: 0)
+
+        XCTAssertEqual(scene.selectedBloodSugar?.timestamp, firstTimestamp)
+
+        scene.moveSelection(toSceneX: 300)
+        XCTAssertEqual(scene.selectedBloodSugar?.timestamp, secondTimestamp)
+        scene.deactivateSelection()
+    }
+
+    func testChartSelectionIncludesTreatmentsNearSelectedBloodSugar() {
+        let timestamp = Date().addingTimeInterval(-300).timeIntervalSince1970 * 1000
+        let glucose = BloodSugar(value: 120, timestamp: timestamp, isMeteredBloodGlucoseValue: false, arrow: "-")
+        let treatment = MealBolusTreatment(id: "selection-test", timestamp: timestamp + 60 * 1000, carbs: 30, insulin: 2)
+        let previousTreatments = TreatmentsStream.singleton.treatments
+        TreatmentsStream.singleton.treatments = [treatment]
+        defer { TreatmentsStream.singleton.treatments = previousTreatments }
+
+        let scene = ChartScene(size: CGSize(width: 300, height: 200), newCanvasWidth: 600, useContrastfulColors: false, showYesterdaysBgs: false)
+        scene.paintChart([[glucose, BloodSugar(value: 130, timestamp: timestamp + 300 * 1000, isMeteredBloodGlucoseValue: false, arrow: "-")], []], newCanvasWidth: 600, maxYDisplayValue: 350, moveToLatestValue: false, displayDaysLegend: false, useConstrastfulColors: false, showYesterdaysBgs: false)
+        scene.activateSelection(atSceneX: 0)
+
+        XCTAssertEqual(scene.selectedTreatments.count, 1)
+        XCTAssertTrue(scene.selectedTreatments.first is MealBolusTreatment)
+    }
+
+    func testChartSelectionIgnoresPreviousDayValues() {
+        let currentTimestamp = Date().addingTimeInterval(-300).timeIntervalSince1970 * 1000
+        let previousDayTimestamp = Date().addingTimeInterval(-24 * 60 * 60).timeIntervalSince1970 * 1000
+        let current = BloodSugar(value: 120, timestamp: currentTimestamp, isMeteredBloodGlucoseValue: false, arrow: "-")
+        let previousDay = BloodSugar(value: 220, timestamp: previousDayTimestamp, isMeteredBloodGlucoseValue: false, arrow: "-")
+        let scene = ChartScene(size: CGSize(width: 300, height: 200), newCanvasWidth: 600, useContrastfulColors: false, showYesterdaysBgs: true)
+
+        scene.paintChart([[current], [previousDay, BloodSugar(value: 230, timestamp: previousDayTimestamp + 300 * 1000, isMeteredBloodGlucoseValue: false, arrow: "-")]], newCanvasWidth: 600, maxYDisplayValue: 350, moveToLatestValue: false, displayDaysLegend: false, useConstrastfulColors: false, showYesterdaysBgs: true)
+        scene.activateSelection(atSceneX: 0)
+
+        XCTAssertEqual(scene.selectedBloodSugar?.timestamp, currentTimestamp)
+    }
 }

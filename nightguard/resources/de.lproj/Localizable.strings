@@ -486,6 +486,7 @@ Damit diese funktionieren, müssen Nightguard Widgets auf dem Lock-Screen platzi
 
 /* Watch Action Button Menu */
 "Crown Scrolls" = "Krone scrollt";
+"Crown Selects" = "Krone wählt";
 
 /* Snooze popup title */
 "Snooze Alarms for" = "Alarme stoppen für";
@@ -654,6 +655,8 @@ Damit diese funktionieren, müssen Nightguard Widgets auf dem Lock-Screen platzi
 "Support for the dynamic island and live activities to see your BG at a glance." = "Unterstützung für die Dynamic Island und Live Aktivitäten, um deinen BZ auf einen Blick zu sehen.";
 "Watch Statistics" = "Watch Statistiken";
 "See the four main glucose stats directly on your Apple Watch in a compact 2x2 view." = "Sieh die vier wichtigsten Glukose-Statistiken direkt auf deiner Apple Watch in einer kompakten 2x2-Ansicht.";
+"Interactive Chart Selection" = "Interaktive Chart-Auswahl";
+"Touch the chart to inspect exact glucose values, timestamps, boluses and carbs on iPhone and Apple Watch." = "Tippe auf den Chart, um exakte Glucosewerte, Zeitpunkte, Boli und Kohlenhydrate auf iPhone und Apple Watch zu untersuchen.";
 "Unlock Pro to see the four main stats on your Apple Watch." = "Schalte Pro frei, um die vier Hauptstatistiken auf deiner Apple Watch zu sehen.";
 "Subscribe on iPhone" = "Auf dem iPhone abonnieren";
 "Tap to change" = "Tippen zum Wechseln";
@@ -709,6 +712,8 @@ Damit diese funktionieren, müssen Nightguard Widgets auf dem Lock-Screen platzi
 "Check BG every minute" = "BZ jede Minute prüfen";
 "Custom Alarm Sound" = "Eigener Alarmton";
 "Crown Zooms" = "Krone zoomt";
+"Bolus %.1fU" = "Bolus %.1f U";
+"Carbs %dg" = "Kohlenhydrate %dg";
 "Define your own Alarm Sound by uploading an mp3 file from your iCloud account." = "Lege einen eigenen Alarmton fest, indem du eine MP3-Datei aus deinem iCloud-Account hochlädst.";
 "High Alert" = "Alarm bei hohen Werten";
 "If activated, a user defined alarm sound will be used." = "Wenn aktiviert, wird ein benutzerdefinierter Alarmton verwendet.";

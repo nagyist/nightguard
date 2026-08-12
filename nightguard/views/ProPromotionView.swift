@@ -85,6 +85,12 @@ struct ProPromotionView: View {
                             title: NSLocalizedString("Watch Statistics", comment: "Pro Feature 4 Title"),
                             description: NSLocalizedString("See the four main glucose stats directly on your Apple Watch in a compact 2x2 view.", comment: "Pro Feature 4 Description")
                         )
+
+                        FeatureRow(
+                            icon: "scope",
+                            title: NSLocalizedString("Interactive Chart Selection", comment: "Pro Feature 5 Title"),
+                            description: NSLocalizedString("Touch the chart to inspect exact glucose values, timestamps, boluses and carbs on iPhone and Apple Watch.", comment: "Pro Feature 5 Description")
+                        )
                     }
 
                     if selectedPromotion == .max {

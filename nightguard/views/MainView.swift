@@ -26,9 +26,12 @@ struct ChartView: UIViewRepresentable {
         // Add gesture recognizers once
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
         let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch(_:)))
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tapGesture.require(toFail: panGesture)
 
         skView.addGestureRecognizer(panGesture)
         skView.addGestureRecognizer(pinchGesture)
+        skView.addGestureRecognizer(tapGesture)
 
         return skView
     }
@@ -48,18 +51,26 @@ struct ChartView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(chartScene: chartScene)
+        Coordinator(chartScene: chartScene, viewModel: viewModel)
     }
 
     class Coordinator: NSObject {
         let chartScene: ChartScene
+        let viewModel: MainViewModel
         var oldXTranslation: CGFloat = 0
 
-        init(chartScene: ChartScene) {
+        init(chartScene: ChartScene, viewModel: MainViewModel) {
             self.chartScene = chartScene
+            self.viewModel = viewModel
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard !chartScene.isSelecting else {
+                guard let view = recognizer.view else { return }
+                chartScene.moveSelection(toSceneX: recognizer.location(in: view).x)
+                return
+            }
+
             if recognizer.state == .began {
                 oldXTranslation = 0
                 chartScene.stopSwipeAction()
@@ -79,11 +90,20 @@ struct ChartView: UIViewRepresentable {
         }
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
+            guard !chartScene.isSelecting else { return }
+
             if recognizer.state == .ended {
                 chartScene.scale(recognizer.scale, keepScale: true)
             } else {
                 chartScene.scale(recognizer.scale, keepScale: false)
             }
+        }
+
+        @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+            guard PurchaseManager.shared.hasProFeatureAccess,
+                  let view = recognizer.view else { return }
+
+            chartScene.toggleSelection(atSceneX: recognizer.location(in: view).x)
         }
     }
 }

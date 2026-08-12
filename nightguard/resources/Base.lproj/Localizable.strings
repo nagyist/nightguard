@@ -618,6 +618,8 @@
 "Support for the dynamic island and live activities to see your BG at a glance." = "Support for the dynamic island and live activities to see your BG at a glance.";
 "Watch Statistics" = "Watch Statistics";
 "See the four main glucose stats directly on your Apple Watch in a compact 2x2 view." = "See the four main glucose stats directly on your Apple Watch in a compact 2x2 view.";
+"Interactive Chart Selection" = "Interactive Chart Selection";
+"Touch the chart to inspect exact glucose values, timestamps, boluses and carbs on iPhone and Apple Watch." = "Touch the chart to inspect exact glucose values, timestamps, boluses and carbs on iPhone and Apple Watch.";
 "Unlock Pro to see the four main stats on your Apple Watch." = "Unlock Pro to see the four main stats on your Apple Watch.";
 "Subscribe on iPhone" = "Subscribe on iPhone";
 "Tap to change" = "Tap to change";
@@ -683,6 +685,9 @@
 "Check BG every minute" = "Check BG every minute";
 "Crown Scrolls" = "Crown Scrolls";
 "Crown Zooms" = "Crown Zooms";
+"Crown Selects" = "Crown Selects";
+"Bolus %.1fU" = "Bolus %.1fU";
+"Carbs %dg" = "Carbs %dg";
 "Delete Target" = "Delete Target";
 "Do you want to add %dg of carbs?" = "Do you want to add %dg of carbs?";
 "Do you want to modify the change date to %@" = "Do you want to modify the change date to %@";

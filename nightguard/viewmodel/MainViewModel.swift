@@ -61,7 +61,17 @@ class MainViewModel: ObservableObject, Identifiable {
 
     #if os(watchOS)
     // MARK: - Watch-Specific Properties
-    @Published var crownScrolls: Bool = true
+    enum CrownMode {
+        case scroll
+        case zoom
+        case select
+    }
+
+    @Published var crownMode: CrownMode = .scroll
+
+    var crownScrolls: Bool {
+        crownMode == .scroll
+    }
     #endif
 
     #if os(iOS)
@@ -109,6 +119,9 @@ class MainViewModel: ObservableObject, Identifiable {
         let bounds = WKInterfaceDevice.current().screenBounds
         let chartSceneHeight = MainViewModel.determineSceneHeightFromCurrentWatchType(interfaceBounds: bounds)
         skScene = ChartScene(size: CGSize(width: bounds.width, height: chartSceneHeight), newCanvasWidth: bounds.width * 4, useContrastfulColors: false, showYesterdaysBgs: UserDefaultsRepository.showYesterdaysBgs.value)
+        skScene.onSelectionTimeout = { [weak self] in
+            self?.crownMode = .scroll
+        }
         #else
         // iOS initialization - scene will be set up later by the view
         let defaultSize = CGSize(width: 400, height: 400)
@@ -373,8 +386,31 @@ class MainViewModel: ObservableObject, Identifiable {
         return 115.0
     }
 
-    func toggleCrownScrolls() {
-        crownScrolls = !crownScrolls
+    func cycleCrownMode() {
+        let nextMode: CrownMode
+        switch crownMode {
+        case .scroll:
+            nextMode = .zoom
+        case .zoom:
+            nextMode = UserDefaultsRepository.watchProAccessAvailable.value ? .select : .scroll
+        case .select:
+            nextMode = .scroll
+        }
+
+        setCrownMode(nextMode)
+    }
+
+    func setCrownMode(_ mode: CrownMode) {
+        if mode == .select && !UserDefaultsRepository.watchProAccessAvailable.value {
+            return
+        }
+
+        if mode != .select {
+            skScene.deactivateSelection()
+        } else {
+            skScene.activateSelection()
+        }
+        crownMode = mode
     }
 
     func eventuallyNotify() {
